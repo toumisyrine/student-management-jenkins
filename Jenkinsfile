@@ -7,38 +7,48 @@ pipeline {
     }
     
     stages {
-        stage('GIT') {
+        stage('Git Checkout') {
             steps {
                 git branch: 'main',
                 url: 'https://github.com/toumisyrine/student-management-jenkins.git'
             }
         }
         
-        stage('Build JAR') {
+        stage('Build with Maven') {
             steps {
                 sh 'mvn clean package -DskipTests'
             }
         }
         
-        stage('Docker Build & Push') {
+        stage('Build Docker Image') {
             steps {
-                sh """
-                    docker build -t ${DOCKER_IMAGE}:latest .
-                    echo ${DOCKER_CREDENTIALS_PSW} | docker login -u ${DOCKER_CREDENTIALS_USR} --password-stdin
-                    docker push ${DOCKER_IMAGE}:latest
-                    docker logout
-                """
+                sh "docker build -t ${DOCKER_IMAGE}:latest ."
+            }
+        }
+        
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        docker push ${DOCKER_IMAGE}:latest
+                        docker logout
+                    '''
+                }
             }
         }
     }
     
     post {
         success {
-            echo '✅ SUCCESS! Image pushed to Docker Hub'
-            echo "🐳 docker pull ${DOCKER_IMAGE}:latest"
+            echo '✅ Pipeline SUCCESS!'
+            echo "Image: ${DOCKER_IMAGE}:latest"
         }
         failure {
-            echo '❌ Build failed'
+            echo '❌ Pipeline FAILED'
+        }
+        always {
+            sh 'docker logout || true'
         }
     }
 }
