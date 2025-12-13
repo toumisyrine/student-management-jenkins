@@ -3,6 +3,7 @@ pipeline {
     
     environment {
         DOCKER_IMAGE = "syrinaaa/student-management"
+        DOCKER_CREDENTIALS = credentials('dockerhub-credentials')
     }
     
     stages {
@@ -13,33 +14,31 @@ pipeline {
             }
         }
         
-        stage('Compile Stage') {
+        stage('Build JAR') {
             steps {
-                sh 'mvn clean compile'
+                sh 'mvn clean package -DskipTests'
             }
         }
         
-        stage('Package') {
+        stage('Docker Build & Push') {
             steps {
-                sh 'mvn package -DskipTests'
+                sh """
+                    docker build -t ${DOCKER_IMAGE}:latest .
+                    echo ${DOCKER_CREDENTIALS_PSW} | docker login -u ${DOCKER_CREDENTIALS_USR} --password-stdin
+                    docker push ${DOCKER_IMAGE}:latest
+                    docker logout
+                """
             }
         }
-        
-             stage('Docker Build') {
-            steps {
-                sh "docker build -t ${DOCKER_IMAGE}:latest ."
-            }
+    }
+    
+    post {
+        success {
+            echo '✅ SUCCESS! Image pushed to Docker Hub'
+            echo "🐳 docker pull ${DOCKER_IMAGE}:latest"
         }
-        
-        stage('Docker Push') {
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                        sh "docker push ${DOCKER_IMAGE}:latest"
-                    }
-                }
-            }
+        failure {
+            echo '❌ Build failed'
         }
     }
 }
