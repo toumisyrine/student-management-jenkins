@@ -15,13 +15,13 @@ pipeline {
         
         stage('Compile Stage') {
             steps {
-                bat 'mvn clean compile'
+                sh 'mvn clean compile'
             }
         }
         
         stage('Package') {
             steps {
-                bat 'mvn package -DskipTests'
+                sh 'mvn package -DskipTests'
             }
         }
         
@@ -31,18 +31,18 @@ pipeline {
                 SONAR_AUTH_TOKEN = credentials('sonarqube')
             }
             steps {
-                bat """
-                mvn sonar:sonar ^
-                  -Dsonar.projectKey=devops_git ^
-                  -Dsonar.host.url=%SONAR_HOST_URL% ^
-                  -Dsonar.token=%SONAR_AUTH_TOKEN%
-                """
+                sh '''
+                mvn sonar:sonar \
+                  -Dsonar.projectKey=devops_git \
+                  -Dsonar.host.url=$SONAR_HOST_URL \
+                  -Dsonar.token=$SONAR_AUTH_TOKEN
+                '''
             }
         }
         
         stage('Docker Build') {
             steps {
-                bat "docker build -t ${DOCKER_IMAGE}:latest ."
+                sh "docker build -t ${DOCKER_IMAGE}:latest ."
             }
         }
         
@@ -50,8 +50,8 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS%"
-                        bat "docker push ${DOCKER_IMAGE}:latest"
+                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                        sh "docker push ${DOCKER_IMAGE}:latest"
                     }
                 }
             }
