@@ -25,6 +25,14 @@ pipeline {
                 sh "docker build -t ${DOCKER_IMAGE}:latest ."
             }
         }
+        stage('🔍 SonarQube Analysis') {
+            steps {
+                echo '📊 Analyse SonarQube...'
+                withSonarQubeEnv('SonarQube') {
+                    sh 'mvn sonar:sonar -Dsonar.projectKey=student-management'
+                }
+            }
+        }
         
         stage('Push to Docker Hub') {
             steps {
@@ -43,6 +51,7 @@ pipeline {
         success {
             echo '✅ Pipeline SUCCESS!'
             echo "Image: ${DOCKER_IMAGE}:latest"
+            echo "SonarQube: http://TON-IP:9000"
         }
         failure {
             echo '❌ Pipeline FAILED'
