@@ -3,9 +3,9 @@ global:
 
 scrape_configs:
   - job_name: 'spring-boot-app'
-    metrics_path: '/student/actuator/prometheus'
+    metrics_path: /actuator/prometheus   # ← corrigé
     static_configs:
-      - targets: ['student-management:8089']
+      - targets: ['student-management:8089']  # nom du service
 
   - job_name: 'node-exporter'
     static_configs:
